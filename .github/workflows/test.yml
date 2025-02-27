@@ -43,3 +43,40 @@ jobs:
         docker run -e OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} \
                    -e PINECONE_API_KEY=${{ secrets.PINECONE_API_KEY }} \
                    rag-chatbot pytest
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, dockerV2 ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install pytest
+    
+    - name: Run basic tests
+      run: |
+        pytest
+
+    - name: Build Docker image
+      run: |
+        docker build -t rag-chatbot .
+        docker run -e OPENAI_API_KEY=$OPENAI_API_KEY rag-chatbot python -c "import main" 
